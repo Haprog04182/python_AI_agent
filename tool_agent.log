@@ -1,0 +1,857 @@
+2026-11-03 14:41:47,514 INFO bash_exec: echo "hello agent test" && pwd && ls /tmp | head -5
+2026-11-03 14:41:48,141 WARNING Достигнут лимит шагов агента (12)
+2026-11-08 08:49:46,296 INFO bash_exec: which goxel; goxel --version 2>&1 | head -20; echo "---"; ls /usr/bin | grep -i gox 2>&1
+2026-11-08 08:49:47,270 INFO bash_exec: goxel --help 2>&1 | head -80
+2026-11-08 08:49:49,157 INFO bash_exec: man goxel 2>/dev/null | head -100; echo "==="; find / -iname "*goxel*" 2>/dev/null | head -50
+2026-11-08 08:50:20,389 INFO bash_exec: find / -iname "*goxel*" 2>/dev/null | head -50 | grep -v proc
+2026-11-08 08:50:51,429 INFO bash_exec: find /usr /etc /opt /home -iname "*goxel*" 2>/dev/null | head -50
+2026-11-08 08:51:22,855 INFO bash_exec: ls /usr/share 2>/dev/null | grep -i gox; echo "---docs---"; ls /usr/share/doc 2>/dev/null | grep -i gox; echo "---bin---"; file /usr/bin/goxel
+2026-11-08 08:51:24,503 INFO bash_exec: ls -la /usr/share/doc/goxel; echo "==="; find /usr/share/doc/goxel -type f
+2026-11-08 08:51:25,212 INFO bash_exec: cat /usr/share/doc/goxel/README.md
+2026-11-08 08:51:28,291 INFO bash_exec: cd /tmp && goxel --help; echo "EXIT=$?"
+2026-11-08 08:51:29,515 INFO bash_exec: pip list 2>/dev/null | grep -i -E "gox|voxel|trimesh|pyvista|open3d"; echo "---python---"; python3 --version; echo "---which---"; which python3
+2026-11-08 08:51:30,851 INFO bash_exec: pwd; ls -la
+2026-11-08 08:51:31,980 INFO bash_exec: head -60 tool_agent.py; echo "..."; wc -l tool_agent.py
+2026-11-08 08:51:33,301 INFO bash_exec: sed -n '1,543p' tool_agent.py
+2026-11-08 08:51:36,581 INFO bash_exec: find . -maxdepth 3 -type f | grep -v ".venv" | head -100
+2026-11-08 08:51:40,169 INFO bash_exec: strings /usr/bin/goxel | grep -i -E "export|usage|save|vox|obj|headless|display|\.gox|script" | head -80
+2026-11-08 08:51:41,802 INFO bash_exec: find / -path /proc -prune -o -name "*.gox*" -print 2>/dev/null | head -40
+2026-11-08 08:52:13,614 INFO bash_exec: find /usr/share /opt /home -name "*.gox*" 2>/dev/null | head -40
+2026-11-08 08:52:44,878 INFO bash_exec: find /usr/share -maxdepth 3 -iname "*gox*" 2>/dev/null | head -40
+2026-11-08 08:52:46,936 INFO bash_exec: find / -type d -name progs 2>/dev/null | head; echo "---"; ls /usr/share | grep -i gox; find / -name "city.goxcf" 2>/dev/null
+2026-11-08 08:53:18,364 INFO bash_exec: find /usr /opt /home -name "city.goxcf" 2>/dev/null
+2026-11-08 08:53:49,700 INFO bash_exec: timeout 20 find /usr -name city.goxcf 2>/dev/null
+2026-11-08 08:53:52,577 INFO bash_exec: mkdir -p /tmp/goxtest && cd /tmp/goxtest && printf '1 1 1 FF0000\n2 2 2 00FF00\n' > voxels.txt && echo "text format?" && goxel voxels.txt --export out.obj 2>&1 | head -40; echo "EXIT=${PIPESTATUS[0]}"; ls -la
+2026-11-08 08:53:54,104 INFO bash_exec: cd /tmp/goxtest && printf '1 1 1 FF0000\n2 2 2 00FF00\n' > voxels.txt && goxel voxels.txt --export out.obj; echo "EXIT=$?"; ls -la
+2026-11-08 08:53:55,438 INFO bash_exec: cat /tmp/goxtest/out.obj
+2026-11-08 08:54:01,483 INFO bash_exec: find /home /opt /srv /app -maxdepth 4 -type f \( -iname "*goxel*" -o -iname "*model*3d*" -o -iname "*mock*" \) 2>/dev/null | grep -v ".venv" | head -50
+2026-11-08 08:54:08,852 INFO bash_exec: zcat /usr/share/man/man1/goxel.1.gz | head -200
+2026-11-08 08:54:10,906 INFO bash_exec: cd /tmp/goxtest && printf '1 1 1 FF0000\n' > one.txt
+for ext in obj vox ply stl png qb txt gox; do
+  goxel one.txt --export "out.$ext" >/tmp/err 2>&1
+  echo "ext=$ext rc=$? $(ls -l out.$ext 2>/dev/null | awk '{print $5}')"
+done
+2026-11-08 08:54:25,549 INFO bash_exec: cd /tmp/goxtest && printf -- '-1 -1 -1 FF0000\n0 0 0 00FF00\n1 1 1 0000FF\n' > neg.txt && goxel neg.txt --export neg.obj >/tmp/neg.log 2>&1; echo "rc=$?"; cat /tmp/neg.log | tail
+2026-11-08 08:55:31,741 INFO bash_exec: cat > "/home/teacher_haprog/Документы/python_AI_agent/goxel_mock.py" <<'PY'
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Лёгкий «мок»/адаптер для подключения к редактору Goxel и генерации
+3D-моделей через его консольный интерфейс.
+
+Goxel работает как обычное приложение с GUI, но умеет в пакетном режиме
+читать текстовый формат вокселей (``X Y Z RRGGBB``) и экспортировать
+результат в один из поддерживаемых форматов (obj, ply, vox, qb, txt).
+Этот модуль инкапсулирует это взаимодействие и позволяет тестировать
+код без реального Goxel (режим mock=True).
+"""
+
+from __future__ import annotations
+
+import os
+import random
+import shutil
+import subprocess
+import tempfile
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+
+Voxel = Tuple[int, int, int, str]
+
+SUPPORTED_FORMATS = {"obj", "ply", "vox", "qb", "txt"}
+
+NAMED_COLORS: Dict[str, str] = {
+    "white": "FFFFFF",
+    "black": "000000",
+    "red": "FF0000",
+    "green": "00FF00",
+    "blue": "0000FF",
+    "yellow": "FFFF00",
+    "cyan": "00FFFF",
+    "magenta": "FF00FF",
+    "orange": "FF8800",
+    "purple": "8800FF",
+    "pink": "FFC0CB",
+    "gray": "808080",
+    "grey": "808080",
+    "brown": "8B4513",
+}
+
+AVAILABLE_SHAPES = [
+    "cube",
+    "sphere",
+    "pyramid",
+    "cylinder",
+    "cone",
+    "torus",
+    "diamond",
+    "heart",
+    "cross",
+    "spiral",
+    "random",
+]
+
+
+class GoxelMockError(RuntimeError):
+    """Ошибка взаимодействия с Goxel."""
+
+
+def normalize_color(color: Any) -> str:
+    """Приводит цвет к виду ``RRGGBB``."""
+    if color is None:
+        return "FFFFFF"
+    text = str(color).strip()
+    if not text:
+        return "FFFFFF"
+    if text.lower() in NAMED_COLORS:
+        text = NAMED_COLORS[text.lower()]
+    text = text.lstrip("#")
+    if "," in text:
+        try:
+            r, g, b = [int(x.strip()) for x in text.split(",")]
+            return f"{r:02X}{g:02X}{b:02X}"
+        except ValueError:
+            pass
+    if len(text) == 3 and all(c in "0123456789abcdefABCDEF" for c in text):
+        text = "".join(c * 2 for c in text)
+    if len(text) == 6 and all(c in "0123456789abcdefABCDEF" for c in text):
+        return text.upper()
+    return "FFFFFF"
+
+
+def _coords_for_size(size: int) -> List[int]:
+    size = max(1, int(size))
+    return [i - size // 2 for i in range(size)]
+
+
+class GoxelMock:
+    """Адаптер/мок для Goxel.
+
+    В обычном режиме (``mock=False``) при наличии бинарника ``goxel``
+    использует реальный экспорт.  В режиме ``mock=True`` ничего внешнего
+    не запускает и создаёт заглушечные файлы — удобно для тестов.
+    """
+
+    def __init__(
+        self,
+        binary: str = "goxel",
+        timeout: int = 30,
+        mock: bool = False,
+        output_dir: Optional[str] = None,
+    ) -> None:
+        self.binary = binary
+        self.timeout = timeout
+        self.mock = bool(mock)
+        self.output_dir = Path(output_dir or "generated_models")
+        self.connected = False
+        self._fallback_to_mock = False
+        self.last_command: Optional[List[str]] = None
+        self.call_history: List[Dict[str, Any]] = []
+
+    # ----------------------------- Подключение -----------------------------
+
+    def connect(self) -> bool:
+        """Проверяет доступность Goxel и «подключается» к нему."""
+        if self.mock:
+            self.connected = True
+            self._record("connect", {"mode": "mock"})
+            return True
+
+        path = shutil.which(self.binary)
+        if path is None:
+            # Не нашли бинарник: переходим в мок-режим, чтобы не падать.
+            self.mock = True
+            self._fallback_to_mock = True
+            self.connected = True
+            self._record("connect", {"mode": "fallback-mock"})
+            return True
+
+        try:
+            result = subprocess.run(
+                [path, "--version"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=self.timeout,
+            )
+            self.connected = (result.returncode == 0)
+        except Exception:  # noqa: BLE001
+            self.connected = False
+
+        if not self.connected:
+            self.mock = True
+            self._fallback_to_mock = True
+            self.connected = True
+            self._record("connect", {"mode": "fallback-mock"})
+            return True
+
+        self._record("connect", {"mode": "real", "binary": path})
+        return True
+
+    def disconnect(self) -> None:
+        self.connected = False
+
+    def is_connected(self) -> bool:
+        return self.connected
+
+    def __enter__(self) -> "GoxelMock":
+        self.connect()
+        return self
+
+    def __exit__(self, *_exc: Any) -> None:
+        self.disconnect()
+
+    # ----------------------------- Генерация вокселей -----------------------------
+
+    def _materialize_shape(
+        self,
+        shape: str,
+        size: int,
+        color: str,
+        hollow: bool = False,
+        seed: int = 42,
+        **params: Any,
+    ) -> List[Voxel]:
+        shape = (shape or "cube").strip().lower()
+        color = normalize_color(color)
+        size = max(1, min(64, int(size)))
+        coords = _coords_for_size(size)
+        rng = random.Random(seed)
+        voxels: List[Voxel] = []
+
+        if shape == "cube":
+            mn, mx = coords[0], coords[-1]
+            for x in coords:
+                for y in coords:
+                    for z in coords:
+                        if hollow and not (x in (mn, mx) or y in (mn, mx) or z in (mn, mx)):
+                            continue
+                        voxels.append((x, y, z, color))
+
+        elif shape == "sphere":
+            r = size / 2.0
+            r2 = r * r
+            for x in coords:
+                for y in coords:
+                    for z in coords:
+                        d2 = x * x + y * y + z * z
+                        if d2 <= r2:
+                            if hollow and d2 < (r - 1) ** 2:
+                                continue
+                            voxels.append((x, y, z, color))
+
+        elif shape == "pyramid":
+            height = size
+            for level in range(height):
+                half = (height - level) // 2
+                xs = range(-half, half + 1)
+                zs = range(-half, half + 1)
+                y = level - height // 2
+                for x in xs:
+                    for z in zs:
+                        voxels.append((x, y, z, color))
+
+        elif shape == "cylinder":
+            radius = size / 2.0
+            radius2 = radius * radius
+            height = size
+            for y in range(-height // 2, height // 2 + 1):
+                for x in coords:
+                    for z in coords:
+                        if x * x + z * z <= radius2:
+                            voxels.append((x, y, z, color))
+
+        elif shape == "cone":
+            height = size
+            for level in range(height):
+                r = max(1, (height - level))
+                r2 = (r / 2.0) ** 2
+                y = level - height // 2
+                for x in coords:
+                    for z in coords:
+                        if x * x + z * z <= r2:
+                            voxels.append((x, y, z, color))
+
+        elif shape == "torus":
+            major = max(1, size // 3)
+            minor = max(1, size // 6)
+            for x in coords:
+                for y in coords:
+                    for z in coords:
+                        q = (x * x + z * z) ** 0.5 - major
+                        if q * q + y * y <= minor * minor:
+                            voxels.append((x, y, z, color))
+
+        elif shape == "diamond":
+            r = size // 2 + 1
+            for x in coords:
+                for y in coords:
+                    for z in coords:
+                        if abs(x) + abs(y) + abs(z) <= r:
+                            voxels.append((x, y, z, color))
+
+        elif shape == "heart":
+            scale = max(1, size // 4)
+            for x in coords:
+                for y in coords:
+                    for z in coords:
+                        xx, yy, zz = x / scale, y / scale, z / scale
+                        if (xx * xx + (yy - (xx * xx) ** (1.0 / 3.0)) ** 2 + zz * zz) <= 4:
+                            voxels.append((x, y, z, color))
+
+        elif shape == "cross":
+            arm = size // 3 or 1
+            for x in coords:
+                for y in coords:
+                    for z in coords:
+                        if abs(x) <= arm or abs(y) <= arm or abs(z) <= arm:
+                            if (abs(x) <= arm) + (abs(y) <= arm) + (abs(z) <= arm) >= 2:
+                                voxels.append((x, y, z, color))
+
+        elif shape == "spiral":
+            steps = size * size
+            for i in range(steps):
+                angle = i * 0.35
+                radius = 1 + i * 0.08
+                x = int(round(radius * __import__("math").cos(angle)))
+                z = int(round(radius * __import__("math").sin(angle)))
+                y = i // (size + 1) - size // 2
+                voxels.append((x, y, z, color))
+
+        elif shape == "random":
+            count = max(1, (size ** 3) // 5)
+            pool = [(x, y, z) for x in coords for y in coords for z in coords]
+            rng.shuffle(pool)
+            for x, y, z in pool[:count]:
+                voxels.append((x, y, z, rng.choice(
+                    ["FF0000", "00FF00", "0000FF", "FFFF00", "FF00FF", "00FFFF"]
+                )))
+
+        else:
+            raise GoxelMockError(f"Неизвестная форма: {shape!r}. Доступные: {AVAILABLE_SHAPES}")
+
+        # Защита от дубликатов (на всякий случай).
+        unique: Dict[Tuple[int, int, int], str] = {}
+        for x, y, z, c in voxels:
+            unique[(x, y, z)] = c
+        return [(x, y, z, c) for (x, y, z), c in unique.items()]
+
+    def _voxel_text(self, voxels: Sequence[Voxel]) -> str:
+        return "".join(f"{x} {y} {z} {c}\n" for x, y, z, c in voxels)
+
+    # ----------------------------- Основной API -----------------------------
+
+    def generate_model(
+        self,
+        shape: str = "cube",
+        size: int = 8,
+        color: str = "FFFFFF",
+        output_path: Optional[str] = None,
+        output_format: Optional[str] = None,
+        hollow: bool = False,
+        seed: int = 42,
+        **shape_params: Any,
+    ) -> Dict[str, Any]:
+        """Генерирует 3D-модель и возвращает метаданные."""
+        if not self.connected:
+            self.connect()
+
+        fmt = (output_format or "").strip().lower().lstrip(".")
+        path = Path(output_path) if output_path else None
+        if path is not None and not fmt:
+            fmt = path.suffix.lower().lstrip(".")
+        if not fmt:
+            fmt = "obj"
+        if fmt not in SUPPORTED_FORMATS:
+            raise GoxelMockError(
+                f"Формат {fmt!r} не поддерживается. Доступные: {sorted(SUPPORTED_FORMATS)}"
+            )
+
+        voxels = self._materialize_shape(
+            shape=shape, size=size, color=color, hollow=hollow, seed=seed, **shape_params
+        )
+        if not voxels:
+            raise GoxelMockError("Генерация дала пустую модель (0 вокселей)")
+
+        if path is None:
+            self.output_dir.mkdir(parents=True, exist_ok=True)
+            stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            path = self.output_dir / f"{shape}_{size}_{stamp}.{fmt}"
+        else:
+            path = Path(path)
+            if path.suffix == "":
+                path = path.with_suffix(f".{fmt}")
+            elif path.suffix.lower().lstrip(".") != fmt:
+                # Явный format имеет приоритет над расширением.
+                path = path.with_suffix(f".{fmt}")
+            path.parent.mkdir(parents=True, exist_ok=True)
+
+        voxel_text = self._voxel_text(voxels)
+
+        # Мок-режим: создаём файл-заглушку без вызова Goxel.
+        if self.mock:
+            if fmt == "txt":
+                path.write_text(voxel_text, encoding="utf-8")
+            else:
+                path.write_text(
+                    f"# MOCK GOXEL OUTPUT\n"
+                    f"# shape={shape} size={size} voxels={len(voxels)} format={fmt}\n"
+                    f"# (реальный Goxel недоступен, сохранён исходный воксельный текст)\n"
+                    + voxel_text,
+                    encoding="utf-8",
+                )
+            result = {
+                "success": True,
+                "mode": "mock",
+                "shape": shape,
+                "size": size,
+                "format": fmt,
+                "path": str(path.resolve()),
+                "voxel_count": len(voxels),
+            }
+            self.call_history.append({"action": "generate_model", **result})
+            self._record("generate_model", result)
+            return result
+
+        # Реальный режим: временный txt -> Goxel -> экспорт.
+        fd, tmp_name = tempfile.mkstemp(prefix="goxel_", suffix=".txt")
+        tmp_path = Path(tmp_name)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as stream:
+                stream.write(voxel_text)
+
+            binary = shutil.which(self.binary) or self.binary
+            command = [binary, str(tmp_path), "--export", str(path)]
+            self.last_command = command
+            completed = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=self.timeout,
+            )
+            if completed.returncode != 0:
+                stderr = (completed.stderr or completed.stdout or "").strip()
+                raise GoxelMockError(
+                    f"Goxel завершился с кодом {completed.returncode}: {stderr}"
+                )
+            if not path.exists() or path.stat().st_size == 0:
+                raise GoxelMockError("Goxel не создал выходной файл")
+        finally:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:  # noqa: BLE001
+                pass
+
+        result = {
+            "success": True,
+            "mode": "real",
+            "shape": shape,
+            "size": size,
+            "format": fmt,
+            "path": str(path.resolve()),
+            "voxel_count": len(voxels),
+        }
+        # Сохраняем исходный воксельный текст рядом — бывает полезно для отладки.
+        try:
+            path.with_suffix(".txt").write_text(voxel_text, encoding="utf-8")
+        except Exception:  # noqa: BLE001
+            pass
+        self.call_history.append({"action": "generate_model", **result})
+        self._record("generate_model", result)
+        return result
+
+    def generate_from_voxels(
+        self,
+        voxels: Iterable[Voxel],
+        output_path: Optional[str] = None,
+        output_format: str = "obj",
+        color_override: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Экспортирует готовый список вокселей через Goxel."""
+        voxel_list = list(voxels)
+        if color_override is not None:
+            voxel_list = [(x, y, z, normalize_color(color_override)) for x, y, z, _ in voxel_list]
+        if not voxel_list:
+            raise GoxelMockError("Список вокселей пуст")
+        shape = "custom"
+        # Для совместимости используем generate_model с предварительно заданными данными:
+        # создаём временный «кусок» через прямой экспорт.
+        if not self.connected:
+            self.connect()
+
+        fmt = output_format.strip().lower().lstrip(".")
+        if fmt not in SUPPORTED_FORMATS:
+            raise GoxelMockError(f"Формат {fmt!r} не поддерживается")
+
+        path = Path(output_path) if output_path else None
+        if path is None:
+            self.output_dir.mkdir(parents=True, exist_ok=True)
+            stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            path = self.output_dir / f"custom_{stamp}.{fmt}"
+        else:
+            path = Path(path)
+            if path.suffix == "" or path.suffix.lower().lstrip(".") != fmt:
+                path = path.with_suffix(f".{fmt}")
+            path.parent.mkdir(parents=True, exist_ok=True)
+
+        voxel_text = self._voxel_text(voxel_list)
+
+        if self.mock:
+            path.write_text(
+                "# MOCK GOXEL OUTPUT\n" + voxel_text if fmt != "txt" else voxel_text,
+                encoding="utf-8",
+            )
+            result = {
+                "success": True,
+                "mode": "mock",
+                "shape": "custom",
+                "format": fmt,
+                "path": str(path.resolve()),
+                "voxel_count": len(voxel_list),
+            }
+            self.call_history.append({"action": "generate_from_voxels", **result})
+            return result
+
+        fd, tmp_name = tempfile.mkstemp(prefix="goxel_", suffix=".txt")
+        tmp_path = Path(tmp_name)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as stream:
+                stream.write(voxel_text)
+            binary = shutil.which(self.binary) or self.binary
+            command = [binary, str(tmp_path), "--export", str(path)]
+            self.last_command = command
+            completed = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=self.timeout,
+            )
+            if completed.returncode != 0:
+                stderr = (completed.stderr or completed.stdout or "").strip()
+                raise GoxelMockError(
+                    f"Goxel завершился с кодом {completed.returncode}: {stderr}"
+                )
+            if not path.exists() or path.stat().st_size == 0:
+                raise GoxelMockError("Goxel не создал выходной файл")
+        finally:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:  # noqa: BLE001
+                pass
+
+        result = {
+            "success": True,
+            "mode": "real",
+            "shape": "custom",
+            "format": fmt,
+            "path": str(path.resolve()),
+            "voxel_count": len(voxel_list),
+        }
+        try:
+            path.with_suffix(".txt").write_text(voxel_text, encoding="utf-8")
+        except Exception:  # noqa: BLE001
+            pass
+        self.call_history.append({"action": "generate_from_voxels", **result})
+        return result
+
+    def generate_scene(
+        self,
+        shapes: Sequence[Dict[str, Any]],
+        output_path: Optional[str] = None,
+        output_format: str = "obj",
+    ) -> Dict[str, Any]:
+        """Собирает сцену из нескольких фигур и экспортирует её."""
+        all_voxels: List[Voxel] = []
+        offset_x = 0
+        for spec in shapes:
+            spec = dict(spec or {})
+            shape = spec.pop("shape", "cube")
+            size = spec.pop("size", 6)
+            color = spec.pop("color", "FFFFFF")
+            dx = int(spec.pop("offset_x", offset_x))
+            dy = int(spec.pop("offset_y", 0))
+            dz = int(spec.pop("offset_z", 0))
+            hollow = bool(spec.pop("hollow", False))
+            seed = int(spec.pop("seed", 42))
+            voxels = self._materialize_shape(shape, size, color, hollow, seed, **spec)
+            for x, y, z, c in voxels:
+                all_voxels.append((x + dx, y + dy, z + dz, c))
+            offset_x += size + 2
+        return self.generate_from_voxels(
+            all_voxels, output_path=output_path, output_format=output_format
+        )
+
+    @staticmethod
+    def available_shapes() -> List[str]:
+        return list(AVAILABLE_SHAPES)
+
+    @staticmethod
+    def supported_formats() -> List[str]:
+        return sorted(SUPPORTED_FORMATS)
+
+    def _record(self, action: str, payload: Dict[str, Any]) -> None:
+        self.call_history.append({"action": action, "timestamp": datetime.now().isoformat(), **payload})
+
+
+if __name__ == "__main__":
+    # Небольшая демонстрация.
+    with GoxelMock() as goxel:
+        for sh in ["cube", "sphere", "pyramid", "torus"]:
+            print(goxel.generate_model(shape=sh, size=8, color="cyan"))
+PY
+2026-11-08 08:55:34,765 INFO bash_exec: cd "/home/teacher_haprog/Документы/python_AI_agent" && python3 -m py_compile goxel_mock.py && echo OK
+2026-11-08 08:55:38,081 INFO bash_exec: cd "/home/teacher_haprog/Документы/python_AI_agent" && grep -n "Агент" tool_agent.py
+2026-11-08 08:55:50,646 INFO bash_exec: cd "/home/teacher_haprog/Документы/python_AI_agent" && python3 - <<'PY'
+import re
+p="tool_agent.py"
+s=open(p,encoding="utf-8").read()
+
+# 1. add optional import after ollama import
+s=s.replace(
+"from ollama import Client\n",
+"from ollama import Client\n\ntry:\n    from goxel_mock import GoxelMock\nexcept Exception:  # noqa: BLE001\n    GoxelMock = None\n",
+1)
+
+# 2. insert Goxel adapter code before agent section
+marker="# ----------------------------- Агент -----------------------------\n"
+code = '''# ----------------------------- Goxel (3D-модели) -----------------------------
+
+_GOXEL_CLIENT = None
+
+
+def _get_goxel_client():
+    """Ленивая инициализация клиента Goxel."""
+    global _GOXEL_CLIENT
+    if _GOXEL_CLIENT is None and GoxelMock is not None:
+        _GOXEL_CLIENT = GoxelMock(mock=False)
+        try:
+            _GOXEL_CLIENT.connect()
+        except Exception:  # noqa: BLE001
+            _GOXEL_CLIENT = None
+    return _GOXEL_CLIENT
+
+
+if GoxelMock is not None:
+    @register_tool(
+        "list_3d_shapes",
+        description="Возвращает список 3D-форм, которые можно сгенерировать через Goxel.",
+        parameters={"type": "object", "properties": {}, "required": []},
+    )
+    def list_3d_shapes() -> str:
+        client = _get_goxel_client()
+        if client is None:
+            return "Goxel недоступен."
+        return "Доступные формы: " + ", ".join(client.available_shapes())
+
+    @register_tool(
+        "generate_3d_model",
+        description=(
+            "Генерирует 3D-модель из вокселей через Goxel и сохраняет её "
+            "в указанный формат (obj, vox, ply, qb, txt)."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "shape": {
+                    "type": "string",
+                    "description": "Форма модели: cube, sphere, pyramid, cylinder, cone, torus, diamond, heart, cross, spiral, random.",
+                },
+                "size": {
+                    "type": "integer",
+                    "description": "Размер модели в вокселях (оси), по умолчанию 8.",
+                },
+                "color": {
+                    "type": "string",
+                    "description": "Цвет в HEX (#RRGGBB) или имя (red, blue...), по умолчанию белый.",
+                },
+                "output_format": {
+                    "type": "string",
+                    "description": "Формат экспорта: obj, vox, ply, qb, txt.",
+                },
+                "output_path": {
+                    "type": "string",
+                    "description": "Путь к выходному файлу (необязательно).",
+                },
+                "hollow": {
+                    "type": "boolean",
+                    "description": "Сделать фигуру полой, по умолчанию false.",
+                },
+                "seed": {
+                    "type": "integer",
+                    "description": "Зерно для random-фигур, по умолчанию 42.",
+                },
+            },
+            "required": [],
+        },
+    )
+    def generate_3d_model(
+        shape: str = "cube",
+        size: int = 8,
+        color: str = "FFFFFF",
+        output_format: str = "obj",
+        output_path: str = "",
+        hollow: bool = False,
+        seed: int = 42,
+    ) -> str:
+        client = _get_goxel_client()
+        if client is None:
+            return "Ошибка: Goxel/GoxelMock недоступен."
+        try:
+            result = client.generate_model(
+                shape=shape or "cube",
+                size=size,
+                color=color,
+                output_path=output_path or None,
+                output_format=output_format or "obj",
+                hollow=bool(hollow),
+                seed=seed,
+            )
+        except Exception as exc:  # noqa: BLE001
+            return f"Ошибка генерации 3D-модели: {exc}"
+        return (
+            f"3D-модель создана: {result['path']} "
+            f"(формат {result['format']}, вокселей {result['voxel_count']}, режим {result['mode']})"
+        )
+
+    @register_tool(
+        "generate_3d_scene",
+        description="Собирает сцену из нескольких 3D-фигур и экспортирует через Goxel.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "shapes": {
+                    "type": "string",
+                    "description": (
+                        "JSON-список фигур. Каждый элемент: "
+                        '{"shape":"cube","size":6,"color":"red","offset_x":0,...}'
+                    ),
+                },
+                "output_format": {"type": "string", "description": "Формат экспорта."},
+                "output_path": {"type": "string", "description": "Путь к выходному файлу."},
+            },
+            "required": ["shapes"],
+        },
+    )
+    def generate_3d_scene(
+        shapes: str,
+        output_format: str = "obj",
+        output_path: str = "",
+    ) -> str:
+        client = _get_goxel_client()
+        if client is None:
+            return "Ошибка: Goxel/GoxelMock недоступен."
+        try:
+            import json as _json
+            specs = _json.loads(shapes)
+            if not isinstance(specs, list):
+                raise ValueError("shapes должен быть списком")
+            result = client.generate_scene(
+                shapes=specs,
+                output_path=output_path or None,
+                output_format=output_format or "obj",
+            )
+        except Exception as exc:  # noqa: BLE001
+            return f"Ошибка генерации сцены: {exc}"
+        return (
+            f"3D-сцена создана: {result['path']} "
+            f"(формат {result['format']}, вокселей {result['voxel_count']})"
+        )
+
+
+'''
+assert marker in s
+s=s.replace(marker, code+marker,1)
+open(p,"w",encoding="utf-8").write(s)
+print("patched")
+PY
+2026-11-08 08:55:52,180 INFO bash_exec: cd "/home/teacher_haprog/Документы/python_AI_agent" && python3 -m py_compile tool_agent.py && echo OK
+2026-11-08 08:55:55,536 INFO bash_exec: cd "/home/teacher_haprog/Документы/python_AI_agent" && python3 - <<'PY'
+import tool_agent
+print("tools:", sorted(tool_agent._TOOLS.keys()))
+print(tool_agent.generate_3d_model(shape="sphere", size=6, color="red", output_format="obj"))
+print(tool_agent.generate_3d_model(shape="torus", size=10, color="blue", output_format="vox"))
+print(tool_agent.list_3d_shapes())
+PY
+2026-11-08 08:55:58,720 INFO bash_exec: cd "/home/teacher_haprog/Документы/python_AI_agent" && python3 - <<'PY'
+import json
+import tool_agent
+specs = [
+ {"shape":"cube","size":4,"color":"red","offset_x":0},
+ {"shape":"sphere","size":4,"color":"blue","offset_x":8},
+ {"shape":"pyramid","size":5,"color":"green","offset_x":16},
+]
+print(tool_agent.generate_3d_scene(shapes=json.dumps(specs), output_format="ply"))
+PY
+2026-11-08 08:56:01,490 INFO bash_exec: cd "/home/teacher_haprog/Документы/python_AI_agent" && python3 - <<'PY'
+from goxel_mock import GoxelMock
+m = GoxelMock(mock=True)
+print(m.connect())
+r = m.generate_model(shape="diamond", size=5, output_format="obj")
+print(r)
+print("exists", __import__("pathlib").Path(r["path"]).exists())
+PY
+2026-11-08 08:56:05,075 INFO bash_exec: cd "/home/teacher_haprog/Документы/python_AI_agent" && python3 - <<'PY'
+from goxel_mock import GoxelMock
+gox = GoxelMock()
+gox.connect()
+for shape, color in [("cube","red"),("sphere","blue"),("pyramid","green"),("torus","cyan"),("heart","magenta")]:
+    print(gox.generate_model(shape=shape, size=8, color=color, output_format="obj"))
+print("shapes:", gox.available_shapes())
+print("formats:", gox.supported_formats())
+PY
+2026-11-08 08:56:10,808 INFO bash_exec: cd "/home/teacher_haprog/Документы/python_AI_agent" && python3 goxel_mock.py
+2026-11-08 08:56:19,728 INFO bash_exec: cd "/home/teacher_haprog/Документы/python_AI_agent" && python3 - <<'PY'
+p="tool_agent.py"
+s=open(p,encoding="utf-8").read()
+old='''    "Ты полезный ассистент. Используй инструменты, если нужна "
+    "точная информация (время, расчёт, команды). Отвечай по-русски."
+    "учти, что ЗАПРЕЩЕННО пользоваться рут правами",'''
+new='''    "Ты полезный ассистент. Используй инструменты, если нужна "
+    "точная информация (время, расчёт, команды). Можешь генерировать 3D-модели "
+    "через Goxel инструментами generate_3d_model / generate_3d_scene. "
+    "Отвечай по-русски. "
+    "учти, что ЗАПРЕЩЕННО пользоваться рут правами",'''
+assert old in s
+s=s.replace(old,new,1)
+open(p,"w",encoding="utf-8").write(s)
+print("patched")
+PY
+2026-11-08 08:56:21,416 INFO bash_exec: cd "/home/teacher_haprog/Документы/python_AI_agent" && python3 -m py_compile tool_agent.py goxel_mock.py && echo OK
+2026-11-08 09:01:43,461 INFO bash_exec: pwd && ls -la
+2026-11-08 09:01:43,468 INFO bash_exec: find . -maxdepth 3 -iname '*triz*' 2>/dev/null | head -50
+2026-11-08 09:01:44,504 INFO bash_exec: find triz -type f | head -100
+2026-11-08 09:01:48,104 INFO bash_exec: cat triz/README.md
+2026-11-08 09:01:48,110 INFO bash_exec: head -200 triz/SKILL.md
+2026-11-08 09:01:55,050 INFO bash_exec: sed -n '1,240p' tool_agent.py
+2026-11-08 09:01:57,525 INFO bash_exec: sed -n '240,520p' tool_agent.py
+2026-11-08 09:02:00,903 INFO bash_exec: find .idea -type f -maxdepth 3 | head -100; echo "---"; grep -R "triz\|SKILL\|skill" .idea 2>/dev/null | head -50
+2026-11-08 09:02:06,202 INFO bash_exec: ls -la ~/.hermes 2>/dev/null; echo "---"; find / -type d -name "skills" 2>/dev/null | head; echo "---env---"; env | grep -i "hermes\|skill\|triz\|ollama"
+2026-11-08 09:02:53,026 INFO bash_exec: ls -la ~ ; echo "---"; find ~ -maxdepth 4 -type d -iname "*skill*" 2>/dev/null | head; echo "---hermes?"; ls -la ~/.config 2>/dev/null
+2026-11-08 09:02:59,061 INFO bash_exec: find / -path /proc -prune -o -type d -name "hermes" -print 2>/dev/null | head; find / -path /proc -prune -o -type f -name "*.skill" -print 2>/dev/null | head; ls ~/.config | grep -i skill
+2026-11-08 09:03:32,228 INFO bash_exec: grep -rl "SKILL.md" /home /opt /usr/local /etc 2>/dev/null | head -20
+2026-11-08 09:04:03,601 INFO bash_exec: timeout 20 grep -rl "SKILL.md" /home /opt /usr/local 2>/dev/null | head -20
+2026-11-08 09:04:32,122 INFO bash_exec: cd triz && python3 scripts/validate_skill.py . ; echo "exit=$?"; python3 scripts/check_links.py .; echo "exit=$?"; python3 scripts/validate_output.py examples/sample-result.json; echo "exit=$?"
+2026-11-08 09:04:38,365 INFO bash_exec: which hermes; ls ~/.local/bin | grep -i hermes; find / -name "*hermes*" -type f 2>/dev/null | head -20parameter">
+2026-11-08 09:04:39,913 INFO bash_exec: command -v hermes; command -v python3.11; ls /root 2>/dev/null; echo "done"
+2026-11-08 09:04:48,402 INFO bash_exec: cat triz/CHANGELOG.md | head -40; echo "===MANIFEST==="; cat triz/MANIFEST.sha256 | head; echo "===examples==="; cat triz/examples/simple.md | head -60
+2026-11-08 09:04:49,865 INFO bash_exec: sed -n '520,760p' tool_agent.py
+2026-11-08 09:04:52,925 INFO bash_exec: cd triz && ls -la; echo "---"; find . -name 'pyproject.toml' -o -name 'setup.py' -o -name 'setup.cfg' -o -name 'requirements.txt' 2>/dev/null
+2026-11-08 09:04:55,376 INFO bash_exec: cd triz && cat scripts/validate_skill.py
+2026-11-08 09:04:56,592 INFO bash_exec: grep -n "^## " triz/SKILL.md
+2026-11-08 09:05:01,727 INFO bash_exec: cd .. && grep -R "skill" -i tool_agent.py goxel_mock.py triz/.git/config 2>/dev/null | head -40
+2026-11-08 09:05:06,024 INFO bash_exec: find / -path /proc -prune -o -path /sys -prune -o -type d -name "skills" -print 2>/dev/null | grep -v /triz | head -50
+2026-11-08 09:05:37,576 INFO bash_exec: find /home /root /opt /usr/local /var/lib -type d -name "skills" 2>/dev/null | head -50
+2026-11-08 09:06:09,100 INFO bash_exec: find /home /opt /usr/local -maxdepth 5 -type d -name "skills" 2>/dev/null | head -50
+2026-11-08 09:06:41,370 INFO bash_exec: find /usr/local /opt -maxdepth 6 -type d -name "skills" 2>/dev/null | head -50
+2026-11-08 09:06:44,219 INFO bash_exec: find /home/teacher_haprog -maxdepth 4 -type f \( -name "*.skill" -o -name "*skill*.py" -o -name "*skill*.json" \) 2>/dev/null | head -50
+2026-11-08 09:07:15,957 INFO bash_exec: cd /home/teacher_haprog; timeout 20 find . -maxdepth 3 -type f \( -name "*.skill" -o -name "*.md" \) 2>/dev/null | grep -v /proc | head -50
+2026-11-08 09:07:29,580 INFO bash_exec: ls -la /home/teacher_haprog/PyCharmMiscProject; echo "---nero---"; ls -la /home/teacher_haprog/РабочийСтол/nero; find /home/teacher_haprog/nero /home/teacher_haprog/.pulsar -maxdepth 3 -name "*skill*" 2>/dev/null | head
+2026-11-08 09:07:36,960 INFO bash_exec: sed -n '198,239p' triz/SKILL.md
+2026-11-08 09:07:41,854 INFO bash_exec: printenv | grep -i "hermes\|skill\|triz" ; echo "---bashrc---"; grep -i "hermes\|skill\|triz" ~/.bashrc ~/.profile 2>/dev/null
+2026-11-08 09:07:48,016 INFO bash_exec: mkdir -p ~/.hermes/skills && ln -sfn /home/teacher_haprog/Документы/python_AI_agent/triz ~/.hermes/skills/triz && ls -la ~/.hermes/skills/triz && HERMES_SKILL_DIR=~/.hermes/skills/triz python3 ~/.hermes/skills/triz/scripts/validate_skill.py ~/.hermes/skills/triz
