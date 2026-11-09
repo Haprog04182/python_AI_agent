@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b0f17" />
+  <title>Веб-агент</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">🤖</div>
+        <div class="brand-text">
+          <h1>Веб-агент</h1>
+          <div class="subtitle" id="configLine">Загрузка конфигурации…</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button id="themeBtn" class="btn ghost" title="Переключить тему" aria-label="Переключить тему">🌙</button>
+        <button id="toolsBtn" class="btn ghost" title="Список инструментов">🛠 Инструменты</button>
+        <button id="historyBtn" class="btn ghost" title="Показать историю">📜 История</button>
+        <button id="clearBtn" class="btn ghost" title="Очистить диалог">🧹 Очистить</button>
+        <button id="saveBtn" class="btn ghost" title="Сохранить историю на сервере">💾 Сохранить</button>
+      </div>
+    </header>
+
+    <main class="chat" id="chat" role="log" aria-live="polite"></main>
+
+    <footer class="composer">
+      <div class="composer-inner">
+        <textarea id="input" rows="1" placeholder="Напишите сообщение агенту… (Enter — отправить, Shift+Enter — новая строка)" aria-label="Сообщение"></textarea>
+        <button id="sendBtn" class="btn primary" aria-label="Отправить">Отправить</button>
+      </div>
+      <div class="hint" id="statusLine">Готов к работе. Инструменты: bash, калькулятор, время, 3D-модели.</div>
+    </footer>
+  </div>
+
+  <div class="modal hidden" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="modalTitle">Информация</h2>
+        <button class="btn ghost btn-icon" id="modalClose" aria-label="Закрыть">✕</button>
+      </div>
+      <pre class="modal-body" id="modalBody"></pre>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

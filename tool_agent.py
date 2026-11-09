@@ -35,10 +35,15 @@ try:
 except Exception:  # noqa: BLE001
     GoxelMock = None
 
+try:
+    from blender_tool import BlenderTool
+except Exception:  # noqa: BLE001
+    BlenderTool = None
+
 
 # ----------------------------- Конфигурация -----------------------------
 
-OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "192.168.12.230:11434")
+OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "192.168.15.230:11434")
 MODEL = os.environ.get("OLLAMA_MODEL", "beam:cloud")
 
 BASH_TIMEOUT = int(os.environ.get("BASH_TIMEOUT", "30"))
@@ -52,7 +57,9 @@ SYSTEM_PROMPT = os.environ.get(
     "SYSTEM_PROMPT",
     "Ты полезный ассистент. Используй инструменты, если нужна "
     "точная информация (время, расчёт, команды). Можешь генерировать 3D-модели "
-    "через Goxel инструментами generate_3d_model / generate_3d_scene. "
+    "через Goxel инструментами generate_3d_model / generate_3d_scene, а также "
+    "через Blender инструментами blender_generate_model / blender_generate_scene "
+    "/ blender_run_python. "
     "Отвечай по-русски. "
     "учти, что ЗАПРЕЩЕННО пользоваться рут правами",
 
@@ -445,6 +452,238 @@ if GoxelMock is not None:
 
 
 # ----------------------------- Агент -----------------------------
+
+
+# ----------------------------- Blender (3D-модели) -----------------------------
+
+_BLENDER_CLIENT = None
+
+
+def _get_blender_client():
+    """Ленивая инициализация клиента Blender."""
+    global _BLENDER_CLIENT
+    if _BLENDER_CLIENT is None and BlenderTool is not None:
+        _BLENDER_CLIENT = BlenderTool(mock=False)
+        try:
+            _BLENDER_CLIENT.connect()
+        except Exception:  # noqa: BLE001
+            _BLENDER_CLIENT = None
+    return _BLENDER_CLIENT
+
+
+if BlenderTool is not None:
+    @register_tool(
+        "blender_info",
+        description="Возвращает информацию о доступном Blender (версия, путь, форматы, формы).",
+        parameters={"type": "object", "properties": {}, "required": []},
+    )
+    def blender_info() -> str:
+        client = _get_blender_client()
+        if client is None:
+            return "Blender недоступен."
+        info = client.info()
+        return (
+            f"Blender: {info.get('version') or 'unknown'}\n"
+            f"путь: {info.get('binary')}\n"
+            f"режим: {info.get('mode')}\n"
+            f"форматы: {', '.join(info.get('formats', []))}\n"
+            f"формы: {', '.join(info.get('shapes', []))}"
+        )
+
+    @register_tool(
+        "list_blender_shapes",
+        description="Возвращает список 3D-форм, доступных в Blender.",
+        parameters={"type": "object", "properties": {}, "required": []},
+    )
+    def list_blender_shapes() -> str:
+        client = _get_blender_client()
+        if client is None:
+            return "Blender недоступен."
+        return "Доступные формы Blender: " + ", ".join(client.available_shapes)
+
+    @register_tool(
+        "blender_generate_model",
+        description=(
+            "Генерирует 3D-модель через Blender (безголовый режим) и сохраняет её "
+            "в указанный формат (obj, stl, ply, gltf, glb, fbx, blend). "
+            "Поддерживает примитивы Blender и материалы."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "shape": {
+                    "type": "string",
+                    "description": (
+                        "Форма модели: cube, sphere, uv_sphere, ico_sphere, cylinder, "
+                        "cone, torus, plane, monkey, grid, circle, text."
+                    ),
+                },
+                "size": {
+                    "type": "number",
+                    "description": "Размер модели в единицах Blender, по умолчанию 2.",
+                },
+                "color": {
+                    "type": "string",
+                    "description": "Цвет в HEX (#RRGGBB) или имя (red, blue...), по умолчанию белый.",
+                },
+                "output_format": {
+                    "type": "string",
+                    "description": "Формат экспорта: obj, stl, ply, gltf, glb, fbx, blend.",
+                },
+                "output_path": {
+                    "type": "string",
+                    "description": "Путь к выходному файлу (необязательно).",
+                },
+                "hollow": {
+                    "type": "boolean",
+                    "description": "Сделать фигуру полой, по умолчанию false.",
+                },
+                "seed": {
+                    "type": "integer",
+                    "description": "Зарезервировано для совместимости, по умолчанию 42.",
+                },
+                "location": {
+                    "type": "array",
+                    "description": "Позиция [x, y, z] (необязательно).",
+                },
+                "rotation_deg": {
+                    "type": "array",
+                    "description": "Вращение в градусах [x, y, z] (необязательно).",
+                },
+                "scale": {
+                    "type": "number",
+                    "description": "Дополнительный масштаб, по умолчанию 1.",
+                },
+                "text": {
+                    "type": "string",
+                    "description": "Текст для формы text.",
+                },
+            },
+            "required": [],
+        },
+    )
+    def blender_generate_model(
+        shape: str = "cube",
+        size: Any = 2.0,
+        color: str = "FFFFFF",
+        output_format: str = "obj",
+        output_path: str = "",
+        hollow: bool = False,
+        seed: int = 42,
+        location: Any = None,
+        rotation_deg: Any = None,
+        scale: Any = None,
+        text: str = "",
+    ) -> str:
+        client = _get_blender_client()
+        if client is None:
+            return "Ошибка: Blender недоступен."
+        kwargs = {}
+        if location is not None:
+            kwargs["location"] = location
+        if rotation_deg is not None:
+            kwargs["rotation_deg"] = rotation_deg
+        if scale is not None:
+            kwargs["scale"] = scale
+        if text:
+            kwargs["text"] = text
+        try:
+            result = client.generate_model(
+                shape=shape or "cube",
+                size=size,
+                color=color,
+                output_path=output_path or None,
+                output_format=output_format or "obj",
+                hollow=bool(hollow),
+                seed=seed,
+                **kwargs,
+            )
+        except Exception as exc:  # noqa: BLE001
+            return f"Ошибка генерации 3D-модели через Blender: {exc}"
+        return (
+            f"3D-модель создана через Blender: {result['path']} "
+            f"(формат {result['format']}, объектов {result['objects']}, "
+            f"вершин {result['vertex_count']}, режим {result['mode']})"
+        )
+
+    @register_tool(
+        "blender_generate_scene",
+        description=(
+            "Создаёт сцену из нескольких объектов через Blender и экспортирует её "
+            "в указанный формат (obj, stl, ply, gltf, glb, fbx, blend). "
+            "shapes — JSON-список фигур: "
+            '[{"shape":"cube","size":2,"color":"red","location":[0,0,0],...}].'
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "shapes": {
+                    "type": "string",
+                    "description": "JSON-список фигур Blender.",
+                },
+                "output_format": {"type": "string", "description": "Формат экспорта."},
+                "output_path": {"type": "string", "description": "Путь к выходному файлу."},
+            },
+            "required": ["shapes"],
+        },
+    )
+    def blender_generate_scene(
+        shapes: str,
+        output_format: str = "obj",
+        output_path: str = "",
+    ) -> str:
+        client = _get_blender_client()
+        if client is None:
+            return "Ошибка: Blender недоступен."
+        try:
+            import json as _json
+            specs = _json.loads(shapes)
+            if not isinstance(specs, list):
+                raise ValueError("shapes должен быть списком")
+            result = client.generate_scene(
+                shapes=specs,
+                output_path=output_path or None,
+                output_format=output_format or "obj",
+            )
+        except Exception as exc:  # noqa: BLE001
+            return f"Ошибка генерации сцены через Blender: {exc}"
+        return (
+            f"3D-сцена создана через Blender: {result['path']} "
+            f"(формат {result['format']}, объектов {result['objects']}, "
+            f"вершин {result['vertex_count']}, режим {result['mode']})"
+        )
+
+    @register_tool(
+        "blender_run_python",
+        description=(
+            "Выполняет произвольный Python-скрипт внутри Blender (background mode) "
+            "и возвращает его вывод. Используется для сложной генерации/обработки моделей."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "script": {
+                    "type": "string",
+                    "description": "Python-код для выполнения в Blender (bpy доступен).",
+                },
+                "timeout": {
+                    "type": "integer",
+                    "description": "Таймаут в секундах (необязательно).",
+                },
+            },
+            "required": ["script"],
+        },
+    )
+    def blender_run_python(script: str, timeout: int = 0) -> str:
+        client = _get_blender_client()
+        if client is None:
+            return "Ошибка: Blender недоступен."
+        try:
+            return client.run_python(script, timeout=timeout or None)
+        except Exception as exc:  # noqa: BLE001
+            return f"Ошибка выполнения скрипта в Blender: {exc}"
+
+
 
 
 class ToolAgent:
